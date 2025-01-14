@@ -12,16 +12,14 @@ export function logSuccessFooter(docs: string[]) {
   }
   outString.push(``);
   outString.push(`💬 ${cyan('Questions? Start the conversation at:')}`);
-  outString.push(`   https://qwik.builder.io/chat`);
+  outString.push(`   https://qwik.dev/chat`);
   outString.push(`   https://twitter.com/QwikDev`);
   outString.push(``);
 
   return outString.join('\n');
 }
 
-/**
- * Log the next STEPS *ACTION REQUIRED*
- */
+/** Log the next STEPS _ACTION REQUIRED_ */
 export function logNextStep(nextSteps: NextSteps | undefined, packageManager: string) {
   const outString: string[] = [];
   if (nextSteps) {
