@@ -30,10 +30,13 @@ export async function getEdges(
   { limit, manifestHashes }: { limit?: number; manifestHashes: string[] }
 ) {
   return time('edgeTable.getEdges', async () => {
-    const where = and(
-      eq(edgeTable.publicApiKey, publicApiKey),
-      inArray(edgeTable.manifestHash, manifestHashes)
-    )!;
+    const where = manifestHashes.length
+      ? and(
+          eq(edgeTable.publicApiKey, publicApiKey),
+          inArray(edgeTable.manifestHash, manifestHashes)
+        )
+      : eq(edgeTable.publicApiKey, publicApiKey);
+
     const query = db
       .select({
         from: edgeTable.from,
@@ -44,7 +47,7 @@ export async function getEdges(
       .from(edgeTable)
       .where(where)
       .groupBy(edgeTable.from, edgeTable.to)
-      .limit(limit || 100_000); // TODO: The 100_000 limit is due to Turso serialization format not being efficient, upgrade this once Turso is fixed.
+      .limit(limit || 5_000); // TODO: The 5_000 limit is due to Turso serialization format not being efficient, upgrade this once Turso is fixed.
     const rows = await query.all();
     return rows.map((e) => ({
       from: e.from,
@@ -126,6 +129,7 @@ export async function getAppInfo(
   name: string;
   description: string | null;
   publicApiKey: string;
+  url: string | null;
   github: string | null;
 }> {
   let app = await db
@@ -137,6 +141,7 @@ export async function getAppInfo(
     const appFields = {
       name: 'Auto create: ' + publicApiKey,
       description: 'Auto create: ' + publicApiKey,
+      url: '',
       publicApiKey,
     };
     const response = await db.insert(applicationTable).values(appFields).run();
@@ -148,7 +153,7 @@ export async function getAppInfo(
   return {
     github:
       publicApiKey == '221smyuj5gl'
-        ? 'https://github.com/BuilderIO/qwik/blob/main/packages/docs/src'
+        ? 'https://github.com/QwikDev/qwik/blob/main/packages/docs/src'
         : null,
     ...app!,
   };
@@ -175,7 +180,7 @@ export async function updateEdge(
   edge: {
     publicApiKey: string;
     manifestHash: string;
-    from: string | null;
+    from?: string | null;
     to: string;
     interaction: boolean;
     delayBucket: number;
@@ -197,7 +202,7 @@ export async function updateEdge(
       and(
         eq(edgeTable.manifestHash, edge.manifestHash),
         eq(edgeTable.publicApiKey, edge.publicApiKey),
-        edge.from === null ? isNull(edgeTable.from) : eq(edgeTable.from, edge.from),
+        edge.from == null ? isNull(edgeTable.from) : eq(edgeTable.from, edge.from),
         eq(edgeTable.to, edge.to)
       )
     )
